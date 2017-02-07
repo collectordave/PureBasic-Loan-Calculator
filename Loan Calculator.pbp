@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://www.purebasic.com/namespace" version="1.0" creator="PureBasic 5.60 Beta 1 (Windows - x64)">
+  <section name="config">
+    <options closefiles="1" openmode="0" name="Loan Calculator"/>
+  </section>
+  <section name="data">
+    <explorer view="..\..\Program Files (x86)\PureBasic\Examples\" pattern="0"/>
+    <log show="1"/>
+    <lastopen date="2017-02-07 08:29" user="DaveSandy" host="MEDIAPC"/>
+  </section>
+  <section name="files">
+    <file name="CDPrint.pbi">
+      <config load="0" scan="1" panel="1" warn="1" lastopen="1" panelstate="+"/>
+      <fingerprint md5="3d7057c86e1064edd1ab781dd5f06134"/>
+    </file>
+    <file name="Loans.pb">
+      <config load="0" scan="1" panel="1" warn="1" lastopen="1" panelstate="+"/>
+      <fingerprint md5="ee4d68756c42c514bef7b023e95157e8"/>
+    </file>
+  </section>
+  <section name="targets">
+    <target name="Default Target" enabled="1" default="1">
+      <inputfile value="Loans.pb"/>
+      <outputfile value="Loans.exe"/>
+      <options xpskin="1" debug="1"/>
+    </target>
+  </section>
+</project>

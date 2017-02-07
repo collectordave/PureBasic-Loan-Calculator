@@ -1,7 +1,7 @@
 ﻿;{ ==Code Header Comment==============================
 ;        Name/title: Loans.pb
 ;   Executable name: 
-;           Version: 1.0
+;           Version: 1.0.1
 ;            Author: netmaestro
 ;       Modyfied By: collectordave
 ;    Translation by: 
@@ -9,9 +9,9 @@
 ; Previous releases: 
 ; This Release Date: 
 ;  Operating system: Windows  [X]GUI
-;  Compiler version: PureBasic 5.6 (x64)
+;  Compiler version: PureBasic 5.6B2 (x64)
 ;         Copyright: (C)2016
-;           License: 
+;           License: Credit Only
 ;         Libraries: 
 ;     English Forum: 
 ;      French Forum: 
@@ -21,6 +21,8 @@
 ; ====================================================
 ;.......10........20........30........40........50........60........70........80
 ;}
+
+IncludeFile "CDPrint.pbi"
 
 Enumeration FormWindow
   #WinMain
@@ -51,6 +53,8 @@ Enumeration FormWindow
   #strTotalPaid
   #txtFinalPayment
   #strFinalPayment  
+  #mnuAmortization
+  #mnuPrint
 EndEnumeration
 
 Global LoanAmount.d,Interest.d,PayAmount.d
@@ -140,6 +144,106 @@ Procedure ReCalculate(PayAmount.d)
   
 EndProcedure
 
+Procedure PrintAmortization()
+  
+  Define PageHeight.i,PageWidth.i,Currentx.i,Currenty.i,Orientation.i,RowHeight.i,GridWidth.i
+  Define PrintText.s
+  Define iLoop.i,jLoop.i
+  
+  ;Open The Print Job
+  CDPrint::Open("Loan Calculator",CDPrint::#Preview)
+  PageHeight = CDPrint::Printer\Height - (CDPrint::Printer\TopPrinterMargin * 2) ;Useable Height
+  PageWidth = CDPrint::Printer\Width - (CDPrint::Printer\LeftPrinterMargin * 2) ;Useable Width
+      
+  If PageHeight > PageWidth
+    Orientation = CDPrint::#Portrait
+  Else
+    Orientation = CDPrint::#Landscape
+  EndIf
+      
+  ;Add First Page
+  CDPrint::AddPage(Orientation)     
+  Currentx = 0 
+  Currenty = 0
+  
+  ;Font Used is Arial 14
+  RowHeight = (14 * 0.352777778) + 2            ;TextHeight in mm + 2mm
+  
+  GridWidth = 40 * 4 ;Sum Of Columnwidths
+  
+  ;First Page Column Headers
+  CDPrint::PrintLine(0,0,GridWidth,0,0.1,RGBA(128,128,128,255))
+  ;For Each Column
+  For iLoop = 0 To 3
+    CDPrint::PrintLine(Currentx + (iLoop * 40), 0,Currentx + (iLoop * 40),RowHeight,0.1,RGBA(128,128,128,255))  
+    CDPrint::PrintLine(Currentx + ((iLoop + 1) * 40), 0,Currentx + ((iLoop + 1) * 40),RowHeight,0.1,RGBA(128,128,128,255))    
+    PrintText = GetGadgetItemText(#listAmort, -1, iLoop)
+    CDPrint::PrintText(Currentx + (iLoop * 40) + 1,1,"Arial",14,PrintText)
+  Next iLoop
+  
+  jLoop = 0
+  
+  While jLoop <  CountGadgetItems(#listAmort) 
+    
+    If (Currenty + (RowHeight * 2)) => PageHeight
+      
+      ;Add Bottom Line For Grid
+      CDPrint::PrintLine(0, Currenty + RowHeight,GridWidth,Currenty + RowHeight,0.1,RGBA(128,128,128,255))  
+      
+      ;New Page Needed
+      CDPrint::AddPage(Orientation)
+      
+      ;Column Headers
+      CDPrint::PrintLine(0,0,GridWidth,0,0.1,RGBA(128,128,128,255))
+      ;For Each Column
+      For iLoop = 0 To 3
+        ;Vertical Grid Lines       
+        CDPrint::PrintLine(Currentx + (iLoop * 40), 0,Currentx + (iLoop * 40),RowHeight,0.1,RGBA(128,128,128,255))  
+        CDPrint::PrintLine(Currentx + ((iLoop + 1) * 40), 0,Currentx + ((iLoop + 1) * 40),RowHeight,0.1,RGBA(128,128,128,255))         
+        ;Get The Text
+        PrintText = Trim(GetGadgetItemText(#listAmort, -1, iLoop))
+        ;Print the Text
+        CDPrint::PrintText(Currentx + (iLoop * 40) + 1,1,"Arial",14,PrintText)
+      Next iLoop
+      
+      ;Set CurrentY
+      Currenty = RowHeight
+      
+    Else
+      Currenty = Currenty + RowHeight
+    EndIf
+    
+    CDPrint::PrintLine(0,Currenty,GridWidth,Currenty,0.1,RGBA(128,128,128,255))
+    
+    ;For Each Column
+    For iLoop = 0 To 3
+      ;Vertical Grid Lines
+      CDPrint::PrintLine(Currentx + (iLoop * 40), Currenty,Currentx + (iLoop * 40),Currenty + RowHeight,0.1,RGBA(128,128,128,255))  
+      CDPrint::PrintLine(Currentx + ((iLoop + 1) * 40), Currenty,Currentx + ((iLoop + 1) * 40),Currenty + RowHeight,0.1,RGBA(128,128,128,255))      
+      PrintText = GetGadgetItemText(#listAmort, jLoop, iLoop)
+      CDPrint::PrintText(Currentx + (iLoop * 40) + 1,Currenty + 1,"Arial",14,PrintText)
+    Next iLoop
+    
+    ;Next Row
+    jLoop = jLoop + 1
+
+
+  Wend
+  ;Add Bottom Line For Grid
+  CDPrint::PrintLine(0, Currenty + RowHeight,GridWidth,Currenty + RowHeight,0.1,RGBA(128,128,128,255))  
+  CDPrint::Finished()
+  
+  
+  
+ ; For jLoop = -1 To CountGadgetItems(#listAmort)
+ ; For iLoop = 0 To 3
+ ;   Debug GetGadgetItemText(#listAmort, jLoop, iLoop)
+    ;Print each column
+ ; Next iLoop
+ ; Next jLoop
+  
+EndProcedure
+
 Procedure Schedule()
   
   Define NumberOfPayments.i,iLoop.i,CompInterest.d,Primary.d
@@ -182,70 +286,78 @@ Procedure Schedule()
   
 EndProcedure
 
-  OpenWindow(#WinMain, 5, 5, 750, 600, "Loan Calculator", #PB_Window_SystemMenu)
-  TextGadget(#txtAmount, 10, 10, 110, 20, "Amount", #PB_Text_Right)
-  StringGadget(#strAmount, 130, 10, 100, 20, "")
-  TextGadget(#txtInterest, 10, 40, 110, 20, "Interest", #PB_Text_Right)
-  StringGadget(#strInterest, 130, 40, 100, 20, "")
-  TextGadget(#txtPercent, 240, 40, 20, 20, "%")
-  TextGadget(#txtPeriod, 10, 70, 110, 20, "Period", #PB_Text_Right)
-  StringGadget(#strPeriod, 130, 70, 100, 20, "")
-  TextGadget(#txtYears, 240, 70, 40, 20, "Years")
-  TextGadget(#txtPayments, 10, 100, 110, 20, "Payments/Year", #PB_Text_Right)
-  StringGadget(#strPayments, 130, 100, 100, 20, "")
-  TextGadget(#txtComponds, 10, 130, 110, 20, "Compounds/Year", #PB_Text_Right)
-  StringGadget(#strCompounds, 130, 130, 100, 20, "")
-  ButtonGadget(#btnCalculate, 150, 160, 80, 30, "Calculate")
-  ListIconGadget(#listAmort,290,20,445,570,"Payment",120,#PB_ListIcon_GridLines|#PB_ListIcon_MultiSelect|#PB_ListIcon_FullRowSelect)
-  AddGadgetColumn(#listAmort,1,"Interest",100)
-  AddGadgetColumn(#listAmort,2,"Principal",100)
-  AddGadgetColumn(#listAmort,3,"Remaining",100)
-  LoadFont(0,"Courier New",10,#PB_Font_HighQuality)
-  SetGadgetFont(#listAmort,FontID(0))
-  TextGadget(#txtMinPayment, 10, 200, 110, 20, "Minimum Payment", #PB_Text_Right)
-  StringGadget(#strMinimumPayment, 130, 200, 100, 20, "")
-  TextGadget(#txtNewPayment, 10, 230, 110, 20, "Adjust Payment", #PB_Text_Right)
-  StringGadget(#strNewPayment, 130, 230, 100, 20, "") 
-  ButtonGadget(#btnReCalculate, 150, 260, 80, 30, "Re-Calculate") 
-  TextGadget(#txtTotalPayments, 20, 300, 110, 20, "Total Payments", #PB_Text_Right)
-  StringGadget(#strTotalPayments, 140, 300, 100, 20, "")
-  TextGadget(#txtTotalInterest, 20, 330, 110, 20, "Total Interest", #PB_Text_Right)
-  StringGadget(#strTotalInterest, 140, 330, 100, 20, "")
-  TextGadget(#txtTotalPaid, 20, 360, 110, 20, "Total Paid", #PB_Text_Right)
-  StringGadget(#strTotalPaid, 140, 360, 100, 20, "")
-  TextGadget(#txtFinalPayment, 20, 390, 110, 20, "Final Payment", #PB_Text_Right)
-  StringGadget(#strFinalPayment, 140, 390, 100, 20, "") 
+OpenWindow(#WinMain, 5, 5, 750, 600, "Loan Calculator", #PB_Window_SystemMenu)
+CreateMenu(0, WindowID(Window_0))
+MenuTitle("Amortization")
+MenuItem(#mnuPrint, "Print")
+TextGadget(#txtAmount, 10, 10, 110, 20, "Amount", #PB_Text_Right)
+StringGadget(#strAmount, 130, 10, 100, 20, "1000")
+TextGadget(#txtInterest, 10, 40, 110, 20, "Interest", #PB_Text_Right)
+StringGadget(#strInterest, 130, 40, 100, 20, "2")
+TextGadget(#txtPercent, 240, 40, 20, 20, "%")
+TextGadget(#txtPeriod, 10, 70, 110, 20, "Period", #PB_Text_Right)
+StringGadget(#strPeriod, 130, 70, 100, 20, "10")
+TextGadget(#txtYears, 240, 70, 40, 20, "Years")
+TextGadget(#txtPayments, 10, 100, 110, 20, "Payments/Year", #PB_Text_Right)
+StringGadget(#strPayments, 130, 100, 100, 20, "12")
+TextGadget(#txtComponds, 10, 130, 110, 20, "Compounds/Year", #PB_Text_Right)
+StringGadget(#strCompounds, 130, 130, 100, 20, "12")
+ButtonGadget(#btnCalculate, 150, 160, 80, 30, "Calculate")
+ListIconGadget(#listAmort,290,20,445,570,"Payment",120,#PB_ListIcon_GridLines|#PB_ListIcon_MultiSelect|#PB_ListIcon_FullRowSelect)
+AddGadgetColumn(#listAmort,1,"Interest",100)
+AddGadgetColumn(#listAmort,2,"Principal",100)
+AddGadgetColumn(#listAmort,3,"Remaining",100)
+LoadFont(0,"Courier New",10,#PB_Font_HighQuality)
+SetGadgetFont(#listAmort,FontID(0))
+TextGadget(#txtMinPayment, 10, 200, 110, 20, "Minimum Payment", #PB_Text_Right)
+StringGadget(#strMinimumPayment, 130, 200, 100, 20, "")
+TextGadget(#txtNewPayment, 10, 230, 110, 20, "Adjust Payment", #PB_Text_Right)
+StringGadget(#strNewPayment, 130, 230, 100, 20, "") 
+ButtonGadget(#btnReCalculate, 150, 260, 80, 30, "Re-Calculate") 
+TextGadget(#txtTotalPayments, 20, 300, 110, 20, "Total Payments", #PB_Text_Right)
+StringGadget(#strTotalPayments, 140, 300, 100, 20, "")
+TextGadget(#txtTotalInterest, 20, 330, 110, 20, "Total Interest", #PB_Text_Right)
+StringGadget(#strTotalInterest, 140, 330, 100, 20, "")
+TextGadget(#txtTotalPaid, 20, 360, 110, 20, "Total Paid", #PB_Text_Right)
+StringGadget(#strTotalPaid, 140, 360, 100, 20, "")
+TextGadget(#txtFinalPayment, 20, 390, 110, 20, "Final Payment", #PB_Text_Right)
+StringGadget(#strFinalPayment, 140, 390, 100, 20, "") 
 
-  Repeat
+Repeat
       
-      Event = WaitWindowEvent()
-      Select Event
-        Case #PB_Event_CloseWindow
-          End
+  Event = WaitWindowEvent()
+    Select Event
+      Case #PB_Event_CloseWindow
+        End
   
-      Case #PB_Event_Menu
-        Select EventMenu()
-        EndSelect
+    Case #PB_Event_Menu
+      Select EventMenu()
+          
+        Case #mnuPrint
+          
+          PrintAmortization()
+          
+      EndSelect
   
-      Case #PB_Event_Gadget
-        Select EventGadget()
-          Case #btnCalculate
+    Case #PB_Event_Gadget
+      Select EventGadget()
+          
+        Case #btnCalculate
             
-            Calculate()
-            Schedule()
+          Calculate()
+          Schedule()
             
-          Case #btnReCalculate
+        Case #btnReCalculate
             
-            If ValD(GetGadgetText(#strNewPayment)) > PayAmount
-              ReCalculate(ValD(GetGadgetText(#strNewPayment)))
-            EndIf
+          If ValD(GetGadgetText(#strNewPayment)) > PayAmount
+            ReCalculate(ValD(GetGadgetText(#strNewPayment)))
+          EndIf
             
-            
-        EndSelect
-    EndSelect
+      EndSelect
+  EndSelect
     
-    ForEver
+ForEver
 ; IDE Options = PureBasic 5.60 Beta 1 (Windows - x64)
-; CursorPosition = 19
-; Folding = x
+; CursorPosition = 13
+; Folding = p
 ; EnableXP
